@@ -1,0 +1,10 @@
+{
+  "agents": [
+    {"name": "Alpha", "address": "0x86c09eC886D42945614bE16d57656bE07521C2d4"},
+    {"name": "Beta", "address": "0xc0e91C8496ADDdc8EF35d4137d867c113D0B042f"},
+    {"name": "Gamma", "address": "0x985821F70Bc7522A3421142cDE282B86727AeBCd"}
+  ],
+  "marketId": "1",
+  "vaultId": "1",
+  "btcUsdPair": "0xee62665949c883f9e0f6f002eac32e00bd59dfe6c34e92a91c37d6a8322d6489"
+}

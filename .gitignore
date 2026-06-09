@@ -1,0 +1,26 @@
+# Dependencies
+node_modules/
+contracts/lib/
+contracts/out/
+contracts/cache/
+contracts/broadcast/
+
+# Env & secrets
+.env
+.env.local
+.env.*.local
+**/seed-keys.json
+**/*-private-keys*
+
+# Media build temp
+docs/video/*.mp4.part
+
+# Next.js
+web/.next/
+
+# Python
+__pycache__/
+.venv/
+
+# OS
+.DS_Store

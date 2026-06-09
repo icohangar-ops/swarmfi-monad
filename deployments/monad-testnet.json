@@ -1,0 +1,20 @@
+{
+  "chainId": 10143,
+  "network": "monad-testnet",
+  "deployer": "0x4c10043F68F7d9ADF6CeeCFD2A7eC82bB19C8937",
+  "rpcUrl": "https://testnet-rpc.monad.xyz",
+  "contracts": {
+    "ReputationRegistry": "0xF3B271e7aEeCCA0d110431b17B9142e9fF68720d",
+    "SwarmOracle": "0x6931e02f0ae958E6A3a3485a6782Dde8c00E2Bc6",
+    "PredictionMarket": "0x69a30e394b99989f1f3c519758fbD54425d2C113",
+    "VaultManager": "0x6A4D777a02A346e8b877f6D1f3dae73114304c61"
+  },
+  "deployTx": {
+    "ReputationRegistry": "0x257bfe813cc72402a505d6ec1f6b064761ae798e95fbc74b3d69960b7b3ef1e9",
+    "SwarmOracle": "0x5c71a8d0747ed53f854634933b0d8b2d7228dc5d6cd3382af6f2ee74f1690f31",
+    "PredictionMarket": "0x133e2d515133d6ea62b73cb9135c8e0dc12d83975f7a899452c931da3d4da1a1",
+    "VaultManager": "0x53c0eb78cee365ef608630976f7b75a6950595c502e06d3ce9368e048ecb87fc",
+    "authorizeUpdater": "0xaf022476a8d6fd77c549069782022bbafbbb3dd167bd79023b266d3197222979"
+  },
+  "deployedAt": "2026-06-09"
+}
