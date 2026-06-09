@@ -6,7 +6,7 @@
 
 **Multi-agent swarm intelligence on Monad EVM** — weighted oracle consensus, reputation-weighted agents, prediction markets, and auto-rebalancing vaults.
 
-Port of [SwarmFi](https://github.com/icohangar-ops/swarmfi) from Solana to Monad, built with the [monskill](https://github.com/therealharpaljadeja/monskills) scaffold flow.
+Built on Monad EVM with the [monskill](https://github.com/therealharpaljadeja/monskills) scaffold flow.
 
 <p align="center">
   <img src="docs/screenshots/01-dashboard.png" alt="SwarmFi dashboard showing BTC/USD consensus from 3 agents" width="900" />
@@ -231,7 +231,6 @@ Optional env vars: `GITHUB_USER`, `CODEBERG_USER`, `REPO` (default: `swarmfi-mon
 
 ## Credits
 
-- Original SwarmFi concept: [icohangar-ops/swarmfi](https://github.com/icohangar-ops/swarmfi)
 - Monad scaffold: [monskill](https://github.com/therealharpaljadeja/monskills) via monskills
 - Built for **Monad Blitz** showcase
 
