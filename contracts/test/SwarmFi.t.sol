@@ -79,18 +79,31 @@ contract SwarmFiTest is Test {
     function testPredictionMarketLifecycle() public {
         _seedConsensus();
 
+        uint64 endTime = uint64(block.timestamp + 1 days);
         vm.prank(admin);
         uint256 marketId = market.createMarket(
             "Will BTC close above $100k?",
             "Resolves using oracle consensus",
             "Yes",
             "No",
-            uint64(block.timestamp + 1 days),
-            BTC_USD
+            endTime,
+            BTC_USD,
+            100_000e8 // strike: outcome A (Yes) wins when price >= $100k
         );
 
         vm.prank(user);
         market.submitPrediction{value: 1 ether}(marketId, 0);
+
+        // Advance past the market close and refresh consensus so resolution
+        // reflects a price reading taken at/after settlement.
+        vm.warp(endTime + 1);
+        vm.prank(agent1);
+        oracle.submitPrice(BTC_USD, 100_000e8, 90);
+        vm.prank(agent2);
+        oracle.submitPrice(BTC_USD, 100_000e8, 90);
+        vm.prank(agent3);
+        oracle.submitPrice(BTC_USD, 100_000e8, 90);
+        oracle.runConsensus(BTC_USD);
 
         vm.prank(admin);
         market.resolveMarket(marketId, 0);

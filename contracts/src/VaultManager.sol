@@ -63,6 +63,7 @@ contract VaultManager is Ownable, ReentrancyGuard {
     error NotWhitelisted();
     error InsufficientShares();
     error ZeroAmount();
+    error TransferFailed();
 
     constructor(address admin) Ownable(admin) {}
 
@@ -133,8 +134,12 @@ contract VaultManager is Ownable, ReentrancyGuard {
         vault.totalShares -= shareAmount;
         vault.totalValue -= payout;
 
-        payable(msg.sender).transfer(net);
-        if (fee > 0) payable(owner()).transfer(fee);
+        (bool sentNet,) = payable(msg.sender).call{value: net}("");
+        if (!sentNet) revert TransferFailed();
+        if (fee > 0) {
+            (bool sentFee,) = payable(owner()).call{value: fee}("");
+            if (!sentFee) revert TransferFailed();
+        }
 
         emit Withdrawn(vaultId, msg.sender, net, shareAmount);
     }

@@ -28,6 +28,9 @@ contract PredictionMarket is Ownable, ReentrancyGuard {
         uint8 winningOutcome; // 0 = A, 1 = B, 255 = unset
         uint64 resolvedAt;
         bytes32 oracleAssetPair;
+        // Resolution threshold: outcome A (0) wins when the oracle consensus
+        // price is >= strikePrice at resolution time, otherwise outcome B (1).
+        uint256 strikePrice;
     }
 
     struct Position {
@@ -56,6 +59,9 @@ contract PredictionMarket is Ownable, ReentrancyGuard {
     error AlreadyClaimed();
     error NoPosition();
     error NothingToClaim();
+    error OracleStale();
+    error OutcomeContradictsOracle();
+    error TransferFailed();
 
     constructor(address admin, address oracle_) Ownable(admin) {
         oracle = ISwarmOracle(oracle_);
@@ -67,7 +73,8 @@ contract PredictionMarket is Ownable, ReentrancyGuard {
         string calldata outcomeA,
         string calldata outcomeB,
         uint64 endTime,
-        bytes32 oracleAssetPair
+        bytes32 oracleAssetPair,
+        uint256 strikePrice
     ) external returns (uint256 marketId) {
         marketCount += 1;
         marketId = marketCount;
@@ -86,7 +93,8 @@ contract PredictionMarket is Ownable, ReentrancyGuard {
             status: MarketStatus.Active,
             winningOutcome: 255,
             resolvedAt: 0,
-            oracleAssetPair: oracleAssetPair
+            oracleAssetPair: oracleAssetPair,
+            strikePrice: strikePrice
         });
 
         emit MarketCreated(marketId, question, endTime);
@@ -118,21 +126,36 @@ contract PredictionMarket is Ownable, ReentrancyGuard {
         emit PredictionSubmitted(marketId, msg.sender, outcome, msg.value);
     }
 
+    /// @notice Resolve a market strictly from the oracle consensus price.
+    /// @param marketId The market to resolve.
+    /// @param winningOutcome The outcome the caller expects to win. This is
+    ///        treated as an assertion only: it MUST match the outcome derived
+    ///        from the oracle price vs the market's strike price, otherwise the
+    ///        call reverts. The owner cannot override the oracle direction.
     function resolveMarket(uint256 marketId, uint8 winningOutcome) external onlyOwner {
         Market storage market = markets[marketId];
         if (market.id == 0) revert MarketNotFound();
         if (market.status != MarketStatus.Active) revert MarketClosed();
         if (winningOutcome > 1) revert InvalidOutcome();
 
-        (, uint64 computedAt, bool exists) = oracle.getLatestConsensus(market.oracleAssetPair);
-        require(exists && computedAt > 0, "oracle missing");
+        (uint256 oraclePrice, uint64 computedAt, bool exists) =
+            oracle.getLatestConsensus(market.oracleAssetPair);
+        if (!exists || computedAt == 0) revert OracleStale();
+        // Consensus must be at least as recent as the market's close so it
+        // reflects the price at/after settlement rather than a stale reading.
+        if (computedAt < market.endTime) revert OracleStale();
+
+        // Derive the winner from the oracle: outcome A (0) wins when the price
+        // is at or above the strike, otherwise outcome B (1) wins.
+        uint8 derivedOutcome = oraclePrice >= market.strikePrice ? 0 : 1;
+        // Reject any owner-supplied outcome that contradicts the oracle.
+        if (winningOutcome != derivedOutcome) revert OutcomeContradictsOracle();
 
         market.status = MarketStatus.Resolved;
-        market.winningOutcome = winningOutcome;
+        market.winningOutcome = derivedOutcome;
         market.resolvedAt = uint64(block.timestamp);
 
-        (uint256 oraclePrice,,) = oracle.getLatestConsensus(market.oracleAssetPair);
-        emit MarketResolved(marketId, winningOutcome, oraclePrice);
+        emit MarketResolved(marketId, derivedOutcome, oraclePrice);
     }
 
     function claimWinnings(uint256 marketId) external nonReentrant {
@@ -153,7 +176,8 @@ contract PredictionMarket is Ownable, ReentrancyGuard {
         uint256 payout = (pos.stake * distributable) / winningPool;
 
         pos.claimed = true;
-        payable(msg.sender).transfer(payout);
+        (bool ok,) = payable(msg.sender).call{value: payout}("");
+        if (!ok) revert TransferFailed();
         emit WinningsClaimed(marketId, msg.sender, payout);
     }
 

@@ -115,11 +115,11 @@ echo "    Consensus result: $CONSENSUS"
 END_TIME=$(($(date +%s) + 604800))
 echo "==> Creating prediction market (ends in 7 days)..."
 cast send "$MARKET" \
-  "createMarket(string,string,string,string,uint64,bytes32)" \
+  "createMarket(string,string,string,string,uint64,bytes32,uint256)" \
   "Will BTC stay above \$100k this week?" \
   "Resolved via SwarmOracle BTC/USD consensus" \
   "Yes" "No" \
-  "$END_TIME" "$BTC_PAIR" \
+  "$END_TIME" "$BTC_PAIR" 10000000000000 \
   --rpc-url "$RPC" --private-key "$PRIVATE_KEY" --gas-limit 800000
 sleep 2
 

@@ -85,10 +85,18 @@ contract SwarmOracle is Ownable, ReentrancyGuard, ISwarmOracle {
     OracleConfig public config;
     IReputationRegistry public reputationRegistry;
 
+    /// @dev Hard cap on submissions accepted per round to bound runConsensus gas.
+    uint256 public constant MAX_SUBMISSIONS_PER_ROUND = 256;
+
     mapping(address => AgentNode) public agents;
     mapping(bytes32 => PriceSubmission[]) private submissions;
     mapping(bytes32 => ConsensusResult) public latestConsensus;
     mapping(uint256 => StigmergySignal) public signals;
+
+    /// @dev Current open submission round per asset pair (incremented each consensus run).
+    mapping(bytes32 => uint256) public currentRound;
+    /// @dev Last round in which a given agent submitted for a given asset pair.
+    mapping(bytes32 => mapping(address => uint256)) public lastSubmittedRound;
 
     event AgentRegistered(address indexed agent, string name, uint256 stake);
     event PriceSubmitted(bytes32 indexed assetPair, address indexed agent, uint256 price, uint256 weight);
@@ -103,6 +111,9 @@ contract SwarmOracle is Ownable, ReentrancyGuard, ISwarmOracle {
     error NotEnoughAgents();
     error NoSubmissions();
     error DeviationTooHigh();
+    error AlreadySubmittedThisRound();
+    error TooManySubmissions();
+    error TransferFailed();
 
     constructor(address admin, address reputationRegistry_) Ownable(admin) {
         reputationRegistry = IReputationRegistry(reputationRegistry_);
@@ -149,6 +160,21 @@ contract SwarmOracle is Ownable, ReentrancyGuard, ISwarmOracle {
         AgentNode storage agent = agents[msg.sender];
         if (agent.registeredAt == 0) revert AgentNotFound();
         if (!agent.isActive) revert AgentInactive();
+
+        // Reject a second submission from the same agent in the same round.
+        // currentRound starts at 0; lastSubmittedRound defaults to 0, so the
+        // first submission is gated by also requiring a prior submission, hence
+        // we mark using round + 1 to distinguish "never submitted" from round 0.
+        uint256 round = currentRound[assetPair];
+        if (lastSubmittedRound[assetPair][msg.sender] == round + 1) {
+            revert AlreadySubmittedThisRound();
+        }
+        lastSubmittedRound[assetPair][msg.sender] = round + 1;
+
+        // Bound the array so runConsensus can never be pushed out-of-gas.
+        if (submissions[assetPair].length >= MAX_SUBMISSIONS_PER_ROUND) {
+            revert TooManySubmissions();
+        }
 
         uint256 weight = _computeWeight(msg.sender, agent.stakeAmount);
         submissions[assetPair].push(
@@ -216,10 +242,16 @@ contract SwarmOracle is Ownable, ReentrancyGuard, ISwarmOracle {
             reputationRegistry.recordOracleOutcome(subs[i].agent, ok, ok ? int256(5) : int256(-15));
         }
 
+        // Open a fresh round and clear this round's submissions. Clearing bounds
+        // the array (preventing unbounded-growth gas DoS) and, together with the
+        // incremented round id, lets each agent submit once in the next round.
+        currentRound[assetPair] += 1;
+        delete submissions[assetPair];
+
         emit ConsensusComputed(assetPair, consensusPrice, uint32(valid), config.consensusRoundCount);
     }
 
-    function slashAgent(address agent, uint256 deviationBps, string calldata reason) external onlyOwner {
+    function slashAgent(address agent, uint256 deviationBps, string calldata reason) external onlyOwner nonReentrant {
         AgentNode storage node = agents[agent];
         if (node.registeredAt == 0) revert AgentNotFound();
         if (deviationBps < config.acceptableDeviationBps) revert DeviationTooHigh();
@@ -230,7 +262,8 @@ contract SwarmOracle is Ownable, ReentrancyGuard, ISwarmOracle {
         config.totalStaked -= slashAmount;
         node.isActive = node.stakeAmount >= 0.005 ether;
 
-        payable(owner()).transfer(slashAmount);
+        (bool ok,) = payable(owner()).call{value: slashAmount}("");
+        if (!ok) revert TransferFailed();
         emit AgentSlashed(agent, slashAmount, reason);
     }
 
