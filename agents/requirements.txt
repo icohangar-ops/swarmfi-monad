@@ -1,0 +1,7 @@
+web3>=6.0
+eth-account>=0.10
+# Core resilience primitives (FileIdempotencyStore, @resilient).
+cubiczan-resilience @ git+https://github.com/icohangar-ops/cubiczan-resilience.git#subdirectory=python
+# Resilient on-chain write client (bounded retry + fee bump, nonce mgmt,
+# tx-success assertion, idempotency guard) for the submitPrice path.
+resilient-onchain @ git+https://github.com/icohangar-ops/cubiczan-resilience.git#subdirectory=onchain/python
