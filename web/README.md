@@ -1,36 +1,65 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# SwarmFi Web Dashboard
 
-## Getting Started
+The web dashboard for SwarmFi, a multi-agent oracle and prediction-market protocol
+on the Monad testnet. It connects a wallet, reads on-chain state from the SwarmFi
+contracts, and surfaces agents, markets, and vaults.
 
-First, run the development server:
+## Tech stack
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- [Next.js](https://nextjs.org) 16 (App Router) + React 19
+- [wagmi](https://wagmi.sh) and [viem](https://viem.sh) for wallet connection and contract reads/writes
+- [TanStack Query](https://tanstack.com/query) for async/cache state
+- [Tailwind CSS](https://tailwindcss.com) v4
+- TypeScript
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Pages
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- `/` — overview dashboard
+- `/agents` — registered oracle agents and reputation
+- `/markets` — prediction markets
+- `/vaults` — vault manager positions
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Getting started
 
-## Learn More
+1. Install dependencies:
 
-To learn more about Next.js, take a look at the following resources:
+   ```bash
+   npm install
+   ```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+2. Configure the environment. Copy the example file and fill in the deployed
+   contract addresses (see `../deployments/monad-testnet.json`):
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+   ```bash
+   cp .env.example .env.local
+   ```
 
-## Deploy on Vercel
+   | Variable | Purpose |
+   | --- | --- |
+   | `NEXT_PUBLIC_REPUTATION_REGISTRY` | ReputationRegistry contract address |
+   | `NEXT_PUBLIC_SWARM_ORACLE` | SwarmOracle contract address |
+   | `NEXT_PUBLIC_PREDICTION_MARKET` | PredictionMarket contract address |
+   | `NEXT_PUBLIC_VAULT_MANAGER` | VaultManager contract address |
+   | `NEXT_PUBLIC_MONAD_RPC_URL` | Optional override for the Monad testnet RPC endpoint |
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+3. Run the development server:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+   ```bash
+   npm run dev
+   ```
+
+   Open [http://localhost:3000](http://localhost:3000) in a browser with a
+   wallet (such as MetaMask) configured for the Monad testnet.
+
+## Scripts
+
+- `npm run dev` — start the dev server
+- `npm run build` — production build
+- `npm run start` — serve the production build
+- `npm run lint` — run ESLint
+
+## Deployment
+
+The dashboard is a standard Next.js app and can be deployed to any Next.js host
+(for example Vercel). Set the same `NEXT_PUBLIC_*` environment variables in the
+deployment environment.
